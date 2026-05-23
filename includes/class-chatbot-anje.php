@@ -78,7 +78,8 @@ class ChatBot_ANJE {
         .caj-msg{max-width:85%;padding:10px 14px;border-radius:12px;font-size:13.5px;line-height:1.55;word-wrap:break-word;box-shadow:0 1px 2px rgba(0,0,0,.06)}
         .caj-bot{background:#fff;color:#222;align-self:flex-start;border-bottom-left-radius:4px}
         .caj-user{background:{$c};color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
-        .caj-bot a{color:#0066cc!important;text-decoration:underline!important;word-break:break-all}
+        .caj-bot a{color:#0055aa!important;text-decoration:underline!important;font-weight:500}
+        .caj-bot a:hover{color:#003d7a!important;text-decoration:underline!important}
         .caj-bot strong{color:#1a1a2e}
         #chatbot-anje-typing{background:#fff;color:#888;align-self:flex-start;font-size:12px;font-style:italic;padding:6px 12px;border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
         #chatbot-anje-input-area{display:flex;padding:10px 12px;background:#fff;border-top:1px solid #e8e8e8;gap:8px}
