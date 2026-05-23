@@ -163,7 +163,7 @@ class ChatBot_ANJE {
                 d.className='caj-msg caj-'+type;
                 var html=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
                     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-                    .replace(/(https?:\/\/[^\s<>"']+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>')
+                    .replace(/(https?:\/\/[^\s<>"']+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:#0066ee!important;text-decoration:underline!important;font-weight:600!important;background:none!important;border:none!important;opacity:1!important;visibility:visible!important;display:inline!important">$1</a>')
                     .replace(/\n/g,'<br>');
                 d.innerHTML=html;msgs.appendChild(d);d.scrollIntoView({behavior:'smooth'});
             }
@@ -298,10 +298,10 @@ PROGRAMAS:
 4. MOVE (https://anje.pt/move/)
 - Programa de apoio ao empreendedorismo
 
-COMO SE TORNAR ASSOCIADO (https://anje.pt/associados/):
+COMO SE TORNAR ASSOCIADO (https://anje.pt/faz-te-socio/):
 1. Aceder à página 'Faz-te Sócio' em https://anje.pt/faz-te-socio/
 2. Preencher a Proposta de Adesão ANJE
-3. Consultar as Condições de Adesão
+3. Consultar as Condições de Adesão em https://anje.pt/associados/
 4. Aguardar aprovação da Direção
 
 BENEFÍCIOS DE SER ASSOCIADO:
@@ -327,8 +327,9 @@ REGRAS:
 - Inclui sempre URLs completos quando fala de páginas do site
 - Se perguntarem sobre ESTATUTOS: indica https://anje.pt/anje/estatutos/
 - Se perguntarem sobre ÓRGÃOS SOCIAIS: lista os nomes e cargos acima
-- Se perguntarem COMO SER ASSOCIADO: indica os passos e o URL
+- Se perguntarem COMO SER ASSOCIADO: indica https://anje.pt/faz-te-socio/ e os passos
 - Se perguntarem sobre PROGRAMAS: descreve cada um com o respetivo URL
+- Se perguntarem sobre ASSOCIADOS em geral: indica https://anje.pt/associados/
 - Se não souberes algo, sugere contactar anje@anje.pt ou visitar anje.pt
 PROMPT;
     }
