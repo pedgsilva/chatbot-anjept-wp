@@ -278,25 +278,27 @@ Conselho Fiscal:
 
 PROGRAMAS:
 
-1. Incubação ANJE (https://www.anje.pt/incubacao/)
+1. Incubação ANJE (https://anje.pt/linc/incubacao-virtual/)
 - 11 centros de incubação e aceleração em todo o país
 - Modalidades: PLAY (25€+IVA/mês), THINK (50€+IVA/mês), START (100€+IVA/mês), GROW (250€+IVA/mês)
 - Inclui: sede social, gestão de correio, atendimento telefónico, salas de reuniões
 - Centros: Matosinhos, Faro, Évora, Porto, Lisboa, e mais 6 localidades
+- Mais info: https://anje.pt/linc/
 
-2. Formação ANJE (https://www.anje.pt/formacao/)
+2. Formação ANJE (https://anje.pt/eventos/)
 - Formação profissional certificada para empreendedores e empresas
 - Áreas: gestão, marketing, vendas, finanças, jurídico, competências digitais
 
-3. Prémio Jovem Empreendedor (https://www.anje.pt/premio-do-jovem-empreendedor/)
+3. Prémio Jovem Empreendedor (https://anje.pt/premio-do-jovem-empreendedor/)
 - Distinção de projetos empresariais inovadores
-- Regulamento e condições disponíveis no site
+- Regulamento: https://anje.pt/premio-do-jovem-empreendedor/regulamento/
+- Condições: https://anje.pt/premio-do-jovem-empreendedor/condicoes/
 
-4. MOVE (https://www.anje.pt/move/)
+4. MOVE (https://anje.pt/move/)
 - Programa de apoio ao empreendedorismo
 
-COMO SE TORNAR ASSOCIADO (https://www.anje.pt/associados/):
-1. Aceder à página 'Faz-te Sócio' em https://www.anje.pt/associados/
+COMO SE TORNAR ASSOCIADO (https://anje.pt/associados/):
+1. Aceder à página 'Faz-te Sócio' em https://anje.pt/faz-te-socio/
 2. Preencher a Proposta de Adesão ANJE
 3. Consultar as Condições de Adesão
 4. Aguardar aprovação da Direção
@@ -310,7 +312,7 @@ BENEFÍCIOS DE SER ASSOCIADO:
 - Acesso a incentivos financeiros e investidores
 
 ESTATUTOS:
-- Consultáveis em https://www.anje.pt/estatutos/
+- Consultáveis em https://anje.pt/anje/estatutos/
 - Definem a estrutura, órgãos sociais, direitos e deveres dos associados
 
 CONTACTOS:
@@ -322,7 +324,7 @@ REGRAS:
 - Português de Portugal
 - Usa **negrita** para títulos e nomes importantes
 - Inclui sempre URLs completos quando fala de páginas do site
-- Se perguntarem sobre ESTATUTOS: indica https://www.anje.pt/estatutos/
+- Se perguntarem sobre ESTATUTOS: indica https://anje.pt/anje/estatutos/
 - Se perguntarem sobre ÓRGÃOS SOCIAIS: lista os nomes e cargos acima
 - Se perguntarem COMO SER ASSOCIADO: indica os passos e o URL
 - Se perguntarem sobre PROGRAMAS: descreve cada um com o respetivo URL
