@@ -162,8 +162,9 @@ class ChatBot_ANJE {
                 var d=document.createElement('div');
                 d.className='caj-msg caj-'+type;
                 var html=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener" style="color:#0066ee!important;text-decoration:underline!important;font-weight:600!important;background:none!important;border:none!important;opacity:1!important;visibility:visible!important;display:inline!important">$1</a>')
                     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-                    .replace(/(https?:\/\/[^\s<>"']+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:#0066ee!important;text-decoration:underline!important;font-weight:600!important;background:none!important;border:none!important;opacity:1!important;visibility:visible!important;display:inline!important">$1</a>')
+                    .replace(/(https?:\/\/[^\s<>"'()\[\\]]+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:#0066ee!important;text-decoration:underline!important;font-weight:600!important;background:none!important;border:none!important;opacity:1!important;visibility:visible!important;display:inline!important">$1</a>')
                     .replace(/\n/g,'<br>');
                 d.innerHTML=html;msgs.appendChild(d);d.scrollIntoView({behavior:'smooth'});
             }
