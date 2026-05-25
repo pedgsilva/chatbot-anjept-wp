@@ -327,6 +327,7 @@ REGRAS:
 - Português de Portugal
 - Usa **negrita** para títulos e nomes importantes
 - Inclui sempre URLs completos quando fala de páginas do site
+- IMPORTANTE: Escreve os URLs como texto simples (ex: https://anje.pt/espacos-anje/), NUNCA como markdown links [texto](url)
 - Se perguntarem sobre ESTATUTOS: indica https://anje.pt/anje/estatutos/
 - Se perguntarem sobre ÓRGÃOS SOCIAIS: lista os nomes e cargos acima
 - Se perguntarem COMO SER ASSOCIADO: indica https://anje.pt/faz-te-socio/ e os passos
@@ -336,7 +337,7 @@ REGRAS:
 
 REGRAS DE URLs OBRIGATÓRIAS:
 - FORMAÇÃO: Se perguntarem sobre formação, cursos, workshops, capacitação ou certificação, direciona SEMPRE para https://anjeformacao.pt — NUNCA para anje.pt/eventos/
-- RESERVAS DE ESPAÇOS: Se perguntarem sobre reservar espaços, salas, auditório ou salas de reuniões, direciona para https://anje.pt/espacos-anje/ e sugere enviar email para reservas@anje.pt
+- RESERVAS DE ESPAÇOS: Se perguntarem sobre reservar espaços, salas, auditório ou salas de reuniões, direciona para https://anje.pt/espacos-anje/ e sugere enviar email para reservasespacos@anje.pt
 - LOJA DO EMPREENDEDOR: Se perguntarem sobre a loja do empreendedor, direciona para https://anje.pt/move/apoios/loja-do-empreendedor/ e sugere preencher o formulário do balcão virtual em https://docs.google.com/forms/d/e/1FAIpQLSe6dxIMqUMgUVuWtPtYyiG8rlGzkGF9a8iaPNG6ZPvf4TZBUQ/viewform
 PROMPT;
     }
