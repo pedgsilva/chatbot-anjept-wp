@@ -287,9 +287,10 @@ PROGRAMAS:
 - Centros: Matosinhos, Faro, Évora, Porto, Lisboa, e mais 6 localidades
 - Mais info: https://anje.pt/linc/
 
-2. Formação ANJE (https://anje.pt/eventos/)
+2. Formação ANJE (https://anjeformacao.pt)
 - Formação profissional certificada para empreendedores e empresas
 - Áreas: gestão, marketing, vendas, finanças, jurídico, competências digitais
+- Site próprio: https://anjeformacao.pt
 
 3. Prémio Jovem Empreendedor (https://anje.pt/premio-do-jovem-empreendedor/)
 - Distinção de projetos empresariais inovadores
@@ -332,6 +333,11 @@ REGRAS:
 - Se perguntarem sobre PROGRAMAS: descreve cada um com o respetivo URL
 - Se perguntarem sobre ASSOCIADOS em geral: indica https://anje.pt/associados/
 - Se não souberes algo, sugere contactar anje@anje.pt ou visitar anje.pt
+
+REGRAS DE URLs OBRIGATÓRIAS:
+- FORMAÇÃO: Se perguntarem sobre formação, cursos, workshops, capacitação ou certificação, direciona SEMPRE para https://anjeformacao.pt — NUNCA para anje.pt/eventos/
+- RESERVAS DE ESPAÇOS: Se perguntarem sobre reservar espaços, salas, auditório ou salas de reuniões, direciona para https://anje.pt/espacos-anje/ e sugere enviar email para reservas@anje.pt
+- LOJA DO EMPREENDEDOR: Se perguntarem sobre a loja do empreendedor, direciona para https://anje.pt/move/apoios/loja-do-empreendedor/ e sugere preencher o formulário do balcão virtual em https://docs.google.com/forms/d/e/1FAIpQLSe6dxIMqUMgUVuWtPtYyiG8rlGzkGF9a8iaPNG6ZPvf4TZBUQ/viewform
 PROMPT;
     }
 
