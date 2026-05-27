@@ -64,9 +64,9 @@ class ChatBot_ANJE {
         $winSide = ($pos === 'left') ? 'left:0' : 'right:0';
         return "
         #chatbot-anje-widget{position:fixed;bottom:20px;{$side}z-index:999999;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
-        #chatbot-anje-toggle{width:60px;height:60px;border-radius:50%;border:none;background:none;color:#fff;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.2);font-size:28px;display:flex;align-items:center;justify-content:center;transition:transform .2s;padding:0;overflow:hidden}
+        #chatbot-anje-toggle{width:90px;height:90px;border-radius:50%;border:none;background:none;color:#fff;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.2);font-size:28px;display:flex;align-items:center;justify-content:center;transition:transform .2s;padding:0;overflow:hidden}
         #chatbot-anje-toggle:hover{transform:scale(1.08)}
-        #chatbot-anje-window{position:absolute;bottom:75px;{$winSide};width:390px;height:560px;background:#fff;border-radius:16px;box-shadow:0 12px 48px rgba(0,0,0,.18);display:none;flex-direction:column;overflow:hidden;animation:cajFade .25s ease}
+        #chatbot-anje-window{position:absolute;bottom:105px;{$winSide};width:390px;height:560px;background:#fff;border-radius:16px;box-shadow:0 12px 48px rgba(0,0,0,.18);display:none;flex-direction:column;overflow:hidden;animation:cajFade .25s ease}
         @keyframes cajFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
         #chatbot-anje-header{background:{$c};color:#fff;padding:14px 16px;display:flex;align-items:center;gap:10px}
         #chatbot-anje-header-text{flex:1}
