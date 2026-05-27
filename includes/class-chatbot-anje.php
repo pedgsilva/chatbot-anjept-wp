@@ -104,7 +104,7 @@ class ChatBot_ANJE {
         $timeout = intval($s['request_timeout']) * 1000;
         ?>
         <div id="chatbot-anje-widget">
-<button id="chatbot-anje-toggle" aria-label="<?php echo $name; ?>" style="width:90px;height:90px;border-radius:50%;border:none;padding:0;overflow:hidden;background:none;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.2);"><img src="<?php echo plugin_dir_url(__FILE__); ?>../assets/BOT.png" alt="<?php echo $name; ?>" style="width:90px;height:90px;object-fit:contain;display:block;"></button>
+<button id="chatbot-anje-toggle" aria-label="<?php echo $name; ?>" style="width:90px;height:90px;border-radius:50%;border:none;padding:0;overflow:hidden;background:none;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.2);"><img src="<?php echo plugin_dir_url(__FILE__); ?>../assets/BOT.jpg" alt="<?php echo $name; ?>" style="width:90px;height:90px;object-fit:contain;display:block;"></button>
             <div id="chatbot-anje-window">
                 <div id="chatbot-anje-header">
                     <div id="chatbot-anje-header-text">
