@@ -124,7 +124,7 @@ class ChatBot_ANJE {
         (function(){
             var ajaxUrl=<?php echo json_encode($ajax);?>,nonce=<?php echo json_encode($nonce);?>;
             var welcome=<?php echo json_encode($welcome);?>;
-            var busy=false,shown=false;
+            var busy=false,shown=false,timeout=<?php echo $timeout;?>;
             var toggle=document.getElementById('chatbot-anje-toggle');
             var win=document.getElementById('chatbot-anje-window');
             var input=document.getElementById('chatbot-anje-input');
@@ -148,66 +148,19 @@ class ChatBot_ANJE {
                 input.value='';
                 addTyping();
 
-                fetch(ajaxUrl,{
-                    method:'POST',
-                    headers:{'Content-Type':'application/x-www-form-urlencoded'},
-                    body:'action=chatbot_anje_chat&message='+encodeURIComponent(msg)+'&nonce='+nonce
-                }).then(function(r){
+                var xhr=new XMLHttpRequest();
+                xhr.open('POST',ajaxUrl);
+                xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded');
+                xhr.timeout=timeout;
+                xhr.onload=function(){
                     removeTyping();
-                    if(!r.body){
-                        r.text().then(function(t){
-                            try{var j=JSON.parse(t);addMsg(j.data&&j.data.response?j.data.response:'Erro.','bot');}
-                            catch(e){addMsg(t||'Erro.','bot');}
-                        });
-                        return;
-                    }
-                    var reader=r.body.getReader();
-                    var decoder=new TextDecoder();
-                    var buf='';
-                    var botDiv=addBotMsg('');
-                    function read(){
-                        reader.read().then(function(res){
-                            if(res.done){done();return;}
-                            buf+=decoder.decode(res.value,{stream:true});
-                            var lines=buf.split('\n');
-                            buf=lines.pop();
-                            for(var i=0;i<lines.length;i++){
-                                var line=lines[i].trim();
-                                if(line.indexOf('data:')!==0)continue;
-                                var data=line.substring(5).trim();
-                                if(data==='[DONE]'){done();return;}
-                                try{
-                                    var obj=JSON.parse(data);
-                                    if(obj.choices&&obj.choices[0]&&obj.choices[0].delta&&obj.choices[0].delta.content){
-                                        botDiv.textContent+=obj.choices[0].delta.content;
-                                        botDiv.innerHTML=renderMd(botDiv.textContent);
-                                        botDiv.scrollIntoView({behavior:'smooth'});
-                                    }
-                                }catch(e){}
-                            }
-                            read();
-                        }).catch(function(err){
-                            addMsg('Erro: '+err.message,'bot');
-                            done();
-                        });
-                    }
-                    read();
-                    function done(){busy=false;sendBtn.disabled=false;input.focus();}
-                }).catch(function(err){
-                    removeTyping();
-                    addMsg('Erro de ligacao.','bot');
-                    busy=false;sendBtn.disabled=false;input.focus();
-                });
-            }
-
-            function addBotMsg(text){
-                var d=document.createElement('div');
-                d.className='caj-msg caj-bot';
-                d.id='caj-bot-'+Date.now();
-                d.textContent=text;
-                msgs.appendChild(d);
-                d.scrollIntoView({behavior:'smooth'});
-                return d;
+                    try{var r=JSON.parse(xhr.responseText);addMsg(r.data.response||'Erro.','bot');}
+                    catch(e){addMsg('Erro ao processar.','bot');}
+                };
+                xhr.onerror=function(){removeTyping();addMsg('Erro de ligacao.','bot');};
+                xhr.ontimeout=function(){removeTyping();addMsg('Timeout. Tente novamente.','bot');};
+                xhr.onreadystatechange=function(){if(xhr.readyState===4){busy=false;sendBtn.disabled=false;input.focus();}};
+                xhr.send('action=chatbot_anje_chat&message='+encodeURIComponent(msg)+'&nonce='+nonce);
             }
 
             function addMsg(text,type){
@@ -263,7 +216,8 @@ class ChatBot_ANJE {
             return;
         }
 
-        $this->call_openrouter_streaming($msg, $s);
+        $resp = $this->call_openrouter($msg, $s);
+        wp_send_json_success(['response' => $resp]);
     }
 
     private function proxy_to_backend($url, $msg, $s) {
@@ -277,66 +231,27 @@ class ChatBot_ANJE {
         return $d['response'] ?? 'Erro ao processar.';
     }
 
-    private function call_openrouter_streaming($msg, $s) {
-        while (ob_get_level()) ob_end_clean();
-        header('Content-Type: text/event-stream');
-        header('Cache-Control: no-cache');
-        header('Connection: keep-alive');
-        header('X-Accel-Buffering: no');
-
-        $timeout = intval($s['request_timeout']);
-        $model   = $s['model'] ?: 'openrouter/owl-alpha';
-        $body = json_encode([
-            'model'      => $model,
-            'messages'   => [
-                ['role' => 'system', 'content' => $this->get_system_prompt()],
-                ['role' => 'user',   'content' => 'Pergunta: ' . $msg],
+    private function call_openrouter($msg, $s) {
+        $r = wp_remote_post('https://openrouter.ai/api/v1/chat/completions', [
+            'timeout' => intval($s['request_timeout']),
+            'headers' => [
+                'Authorization' => 'Bearer ' . $s['openrouter_key'],
+                'Content-Type'  => 'application/json',
             ],
-            'temperature' => floatval($s['temperature']),
-            'max_tokens'  => intval($s['max_tokens']),
-            'stream'      => true,
+            'body' => json_encode([
+                'model'      => $s['model'] ?: 'openrouter/owl-alpha',
+                'messages'   => [
+                    ['role' => 'system', 'content' => $this->get_system_prompt()],
+                    ['role' => 'user',   'content' => $msg],
+                ],
+                'temperature' => floatval($s['temperature']),
+                'max_tokens'  => intval($s['max_tokens']),
+            ]),
         ]);
-
-        $ch = curl_init('https://openrouter.ai/api/v1/chat/completions');
-        curl_setopt_array($ch, [
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => $body,
-            CURLOPT_HTTPHEADER     => [
-                "Authorization: Bearer {$s['openrouter_key']}",
-                'Content-Type: application/json',
-            ],
-            CURLOPT_RETURNTRANSFER => false,
-            CURLOPT_TIMEOUT        => $timeout,
-            CURLOPT_WRITEFUNCTION  => function($curl, $chunk) {
-                $lines = explode("\n", $chunk);
-                foreach ($lines as $line) {
-                    $line = trim($line);
-                    if ($line === '' || strpos($line, 'data:') !== 0) continue;
-                    $data = trim(substr($line, 5));
-                    if ($data === '[DONE]') {
-                        echo "data: [DONE]\n\n";
-                        flush();
-                        return strlen($chunk);
-                    }
-                    echo "data: " . $data . "\n\n";
-                    flush();
-                }
-                return strlen($chunk);
-            },
-        ]);
-
-        curl_exec($ch);
-        $err = curl_error($ch);
-        curl_close($ch);
-
-        if ($err) {
-            echo "data: {\"error\":\"" . addslashes($err) . "\"}\n\n";
-            flush();
-        }
-
-        echo "data: [DONE]\n\n";
-        flush();
-        wp_die();
+        if (is_wp_error($r)) return 'Erro: ' . $r->get_error_message();
+        $d = json_decode(wp_remote_retrieve_body($r), true);
+        if (isset($d['error'])) return 'Erro: ' . ($d['error']['message'] ?? 'Desconhecido');
+        return $d['choices'][0]['message']['content'] ?? 'Erro.';
     }
 
     /* ================================================================
