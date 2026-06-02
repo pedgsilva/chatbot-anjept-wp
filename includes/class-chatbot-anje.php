@@ -36,7 +36,7 @@ class ChatBot_ANJE {
             'primary_color' => '#007bff',
             'position' => 'right',
             'max_tokens' => 600,
-            'request_timeout' => 60,
+            'request_timeout' => 90,
             'show_on_all_pages' => 'yes',
             'temperature' => 0.3,
         ];
@@ -124,7 +124,7 @@ class ChatBot_ANJE {
         (function(){
             var ajaxUrl=<?php echo json_encode($ajax);?>,nonce=<?php echo json_encode($nonce);?>;
             var welcome=<?php echo json_encode($welcome);?>;
-            var busy=false,shown=false,timeout=<?php echo $timeout;?>;
+            var busy=false,shown=false;
             var toggle=document.getElementById('chatbot-anje-toggle');
             var win=document.getElementById('chatbot-anje-window');
             var input=document.getElementById('chatbot-anje-input');
@@ -142,32 +142,92 @@ class ChatBot_ANJE {
 
             function sendMsg(){
                 var msg=input.value.trim();
-                if(!msg||busy)return;busy=true;sendBtn.disabled=true;
-                addMsg(msg,'user');input.value='';addTyping();
-                var xhr=new XMLHttpRequest();
-                xhr.open('POST',ajaxUrl);
-                xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded');
-                xhr.timeout=timeout;
-                xhr.onload=function(){
+                if(!msg||busy)return;
+                busy=true;sendBtn.disabled=true;
+                addMsg(msg,'user');
+                input.value='';
+                addTyping();
+
+                fetch(ajaxUrl,{
+                    method:'POST',
+                    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+                    body:'action=chatbot_anje_chat&message='+encodeURIComponent(msg)+'&nonce='+nonce
+                }).then(function(r){
                     removeTyping();
-                    try{var r=JSON.parse(xhr.responseText);addMsg(r.data.response||'Erro.','bot');}
-                    catch(e){addMsg('Erro ao processar.','bot');}
-                };
-                xhr.onerror=function(){removeTyping();addMsg('Erro de ligação.','bot');};
-                xhr.ontimeout=function(){removeTyping();addMsg('Timeout. Tente novamente.','bot');};
-                xhr.onreadystatechange=function(){if(xhr.readyState===4){busy=false;sendBtn.disabled=false;input.focus();}};
-                xhr.send('action=chatbot_anje_chat&message='+encodeURIComponent(msg)+'&nonce='+nonce);
+                    if(!r.body){
+                        r.text().then(function(t){
+                            try{var j=JSON.parse(t);addMsg(j.data&&j.data.response?j.data.response:'Erro.','bot');}
+                            catch(e){addMsg(t||'Erro.','bot');}
+                        });
+                        return;
+                    }
+                    var reader=r.body.getReader();
+                    var decoder=new TextDecoder();
+                    var buf='';
+                    var botDiv=addBotMsg('');
+                    function read(){
+                        reader.read().then(function(res){
+                            if(res.done){done();return;}
+                            buf+=decoder.decode(res.value,{stream:true});
+                            var lines=buf.split('\n');
+                            buf=lines.pop();
+                            for(var i=0;i<lines.length;i++){
+                                var line=lines[i].trim();
+                                if(line.indexOf('data:')!==0)continue;
+                                var data=line.substring(5).trim();
+                                if(data==='[DONE]'){done();return;}
+                                try{
+                                    var obj=JSON.parse(data);
+                                    if(obj.choices&&obj.choices[0]&&obj.choices[0].delta&&obj.choices[0].delta.content){
+                                        botDiv.textContent+=obj.choices[0].delta.content;
+                                        botDiv.innerHTML=renderMd(botDiv.textContent);
+                                        botDiv.scrollIntoView({behavior:'smooth'});
+                                    }
+                                }catch(e){}
+                            }
+                            read();
+                        }).catch(function(err){
+                            addMsg('Erro: '+err.message,'bot');
+                            done();
+                        });
+                    }
+                    read();
+                    function done(){busy=false;sendBtn.disabled=false;input.focus();}
+                }).catch(function(err){
+                    removeTyping();
+                    addMsg('Erro de ligacao.','bot');
+                    busy=false;sendBtn.disabled=false;input.focus();
+                });
             }
+
+            function addBotMsg(text){
+                var d=document.createElement('div');
+                d.className='caj-msg caj-bot';
+                d.id='caj-bot-'+Date.now();
+                d.textContent=text;
+                msgs.appendChild(d);
+                d.scrollIntoView({behavior:'smooth'});
+                return d;
+            }
+
             function addMsg(text,type){
                 var d=document.createElement('div');
                 d.className='caj-msg caj-'+type;
-                var html=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-                    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener" style="color:#0066ee!important;text-decoration:underline!important;font-weight:600!important;background:none!important;border:none!important;opacity:1!important;visibility:visible!important;display:inline!important">$1</a>')
-                    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
-                    .replace(/(https?:\/\/[^<>\s"'()]+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:#0066ee!important;text-decoration:underline!important;font-weight:600!important;background:none!important;border:none!important;opacity:1!important;visibility:visible!important;display:inline!important">$1</a>')
-                    .replace(/\n/g,'<br>');
-                d.innerHTML=html;msgs.appendChild(d);d.scrollIntoView({behavior:'smooth'});
+                d.innerHTML=renderMd(escapeHtml(text));
+                msgs.appendChild(d);
+                d.scrollIntoView({behavior:'smooth'});
             }
+
+            function escapeHtml(t){var d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+
+            function renderMd(text){
+                return text
+                    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener" style="color:#0066ee!important;text-decoration:underline!important;font-weight:600!important">$1</a>')
+                    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+                    .replace(/(https?:\/\/[^<>\s"'()]+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:#0066ee!important;text-decoration:underline!important;font-weight:600!important">$1</a>')
+                    .replace(/\n/g,'<br>');
+            }
+
             function addTyping(){
                 var d=document.createElement('div');d.id='chatbot-anje-typing';
                 d.className='caj-msg';d.textContent='A escrever...';msgs.appendChild(d);
@@ -184,7 +244,7 @@ class ChatBot_ANJE {
 
     public function handle_chat() {
         if (!check_ajax_referer('chatbot_anje_nonce', 'nonce', false)) {
-            wp_send_json_error('Token inválido', 403);
+            wp_send_json_error('Token invalido', 403);
         }
         $msg = sanitize_text_field($_POST['message'] ?? '');
         if (empty($msg)) wp_send_json_error('Vazio', 400);
@@ -194,16 +254,16 @@ class ChatBot_ANJE {
         $key = $s['openrouter_key'];
 
         if (empty($backend_url) && empty($key)) {
-            wp_send_json_success(['response' => '⚠️ Configure a API Key em <a href="' . admin_url('options-general.php?page=chatbot-anje') . '">Definições > ChatBot ANJE</a>']);
+            wp_send_json_success(['response' => 'Configure a API Key em Definicoes > ChatBot ANJE']);
         }
 
         if (!empty($backend_url)) {
             $resp = $this->proxy_to_backend($backend_url, $msg, $s);
             wp_send_json_success(['response' => $resp]);
+            return;
         }
 
-        $resp = $this->call_openrouter($msg, $s);
-        wp_send_json_success(['response' => $resp]);
+        $this->call_openrouter_streaming($msg, $s);
     }
 
     private function proxy_to_backend($url, $msg, $s) {
@@ -217,174 +277,74 @@ class ChatBot_ANJE {
         return $d['response'] ?? 'Erro ao processar.';
     }
 
-    private function call_openrouter($msg, $s) {
-        $r = wp_remote_post('https://openrouter.ai/api/v1/chat/completions', [
-            'timeout' => intval($s['request_timeout']),
-            'headers' => ['Authorization' => 'Bearer ' . $s['openrouter_key'], 'Content-Type' => 'application/json'],
-            'body' => json_encode([
-                'model' => $s['model'] ?: 'openrouter/owl-alpha',
-                'messages' => [
-                    ['role' => 'system', 'content' => $this->get_system_prompt($s)],
-                    ['role' => 'user', 'content' => 'Pergunta: ' . $msg],
-                ],
-                'temperature' => floatval($s['temperature']),
-                'max_tokens' => intval($s['max_tokens']),
-            ]),
+    private function call_openrouter_streaming($msg, $s) {
+        while (ob_get_level()) ob_end_clean();
+        header('Content-Type: text/event-stream');
+        header('Cache-Control: no-cache');
+        header('Connection: keep-alive');
+        header('X-Accel-Buffering: no');
+
+        $timeout = intval($s['request_timeout']);
+        $model   = $s['model'] ?: 'openrouter/owl-alpha';
+        $body = json_encode([
+            'model'      => $model,
+            'messages'   => [
+                ['role' => 'system', 'content' => $this->get_system_prompt()],
+                ['role' => 'user',   'content' => 'Pergunta: ' . $msg],
+            ],
+            'temperature' => floatval($s['temperature']),
+            'max_tokens'  => intval($s['max_tokens']),
+            'stream'      => true,
         ]);
-        if (is_wp_error($r)) return 'Erro: ' . $r->get_error_message();
-        $d = json_decode(wp_remote_retrieve_body($r), true);
-        if (isset($d['error'])) return 'Erro: ' . ($d['error']['message'] ?? 'Desconhecido');
-        return $d['choices'][0]['message']['content'] ?? 'Erro.';
+
+        $ch = curl_init('https://openrouter.ai/api/v1/chat/completions');
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $body,
+            CURLOPT_HTTPHEADER     => [
+                "Authorization: Bearer {$s['openrouter_key']}",
+                'Content-Type: application/json',
+            ],
+            CURLOPT_RETURNTRANSFER => false,
+            CURLOPT_TIMEOUT        => $timeout,
+            CURLOPT_WRITEFUNCTION  => function($curl, $chunk) {
+                $lines = explode("\n", $chunk);
+                foreach ($lines as $line) {
+                    $line = trim($line);
+                    if ($line === '' || strpos($line, 'data:') !== 0) continue;
+                    $data = trim(substr($line, 5));
+                    if ($data === '[DONE]') {
+                        echo "data: [DONE]\n\n";
+                        flush();
+                        return strlen($chunk);
+                    }
+                    echo "data: " . $data . "\n\n";
+                    flush();
+                }
+                return strlen($chunk);
+            },
+        ]);
+
+        curl_exec($ch);
+        $err = curl_error($ch);
+        curl_close($ch);
+
+        if ($err) {
+            echo "data: {\"error\":\"" . addslashes($err) . "\"}\n\n";
+            flush();
+        }
+
+        echo "data: [DONE]\n\n";
+        flush();
+        wp_die();
     }
 
     /* ================================================================
      * SYSTEM PROMPT - Base de conhecimento completa da ANJE
      * ================================================================ */
 
-    private function get_system_prompt($s) {
-        $bot_name = $s['chatbot_name'] ?? 'ChatBot ANJE';
-        return <<<PROMPT
-És o assistente virtual da ANJE (anje.pt) - Associação Nacional de Jovens Empresários.
-
-SOBRE A ANJE:
-- Fundada em 1986
-- Associação de direito privado e utilidade pública
-- Representa os jovens empresários portugueses
-- Sede: Casa do Farol, Rua Paula da Gama, 4169-006 Porto
-- Email: anje@anje.pt | Tel: (+351) 220 108 000
-
-ÓRGÃOS SOCIAIS:
-
-Direção Nacional:
-- Presidente: Carlos Carvalho
-- Vice-Presidentes: Nuno Malheiro, Filipa Pinto de Carvalho, Gonçalo Simões de Almeida
-- Diretores Nacionais: Filipe Quinaz, Miguel Teixeira Bastos, Sofia Correia de Sousa, Tiago Araújo
-- Diretor Nacional Norte: António Fragateiro
-- Diretora Nacional Centro: Beatriz Almeida
-- Diretor Nacional Alentejo: Tiago Abalroado
-- Diretor Nacional Algarve: Pedro Marcelino
-- Diretor Nacional Lisboa e Vale do Tejo: Camilo Ferreira
-- Diretores Suplentes: João Pestana de Vasconcelos, Diogo Teixeira
-
-Mesa da Assembleia-Geral:
-- Presidente: Miguel Moreira da Silva
-- Vice-Presidente: Ricardo Santos Lopes
-- Secretária: Paula Melo
-- Suplentes: Gonçalo Sá, Diogo Pinheiro
-
-Conselho Fiscal:
-- Presidente: Catarina Azevedo
-- Vice-Presidente: Pedro Cardoso
-- Vogais: Sofia Xavier, Vítor Almeida, Gonçalo Abreu
-- Suplentes: José Miguel Oliveira, Manuela Borges
-
-PROGRAMAS:
-
-1. Incubação ANJE (https://anje.pt/linc/incubacao-virtual/)
-- 11 centros de incubação e aceleração em todo o país
-- Modalidades: PLAY (25€+IVA/mês), THINK (50€+IVA/mês), START (100€+IVA/mês), GROW (250€+IVA/mês)
-- Inclui: sede social, gestão de correio, atendimento telefónico, salas de reuniões
-- Centros: Matosinhos, Faro, Évora, Porto, Lisboa, e mais 6 localidades
-- Mais info: https://anje.pt/linc/
-
-2. Formação ANJE (https://anjeformacao.pt)
-- Formação profissional certificada para empreendedores e empresas
-- Áreas: gestão, marketing, vendas, finanças, jurídico, competências digitais
-- Site próprio: https://anjeformacao.pt
-
-3. Prémio Jovem Empreendedor (https://anje.pt/premio-do-jovem-empreendedor/)
-- Distinção de projetos empresariais inovadores
-- Regulamento: https://anje.pt/premio-do-jovem-empreendedor/regulamento/
-- Condições: https://anje.pt/premio-do-jovem-empreendedor/condicoes/
-
-4. MOVE (https://anje.pt/move/)
-- Programa de apoio ao empreendedorismo
-
-5. Portugal Fashion (https://portugalfashion.com/)
-- Criado em 1995 pela ANJE
-- Promove a moda de autor nacional e internacionalmente
-- Posiciona Portugal como "fashion hub" europeu e mundial
-- Organiza fashion weeks e eventos internacionais (Paris, Milão, Londres, Nova Iorque, Madrid, etc.)
-- Mais de 200 eventos internacionais realizados
-- Site: https://portugalfashion.com/
-
-COMO SE TORNAR ASSOCIADO (https://anje.pt/faz-te-socio/):
-1. Aceder à página 'Faz-te Sócio' em https://anje.pt/faz-te-socio/
-2. Preencher a Proposta de Adesão ANJE
-3. Consultar as Condições de Adesão em https://anje.pt/associados/
-4. Aguardar aprovação da Direção
-
-QUOTAS DE ASSOCIAÇÃO (Primeira Quota / Adesão):
-- Sócio Individual: 60€
-- Sócio Corporativo Micro Empresa: 100€
-- Sócio Corporativo Pequena Empresa: 200€
-- Sócio Corporativo Média Empresa: 400€
-- Sócio Corporativo Grande Empresa: 2500€
-- Sócio Aderente (até 40 anos, potencial empresário): quota disponível em https://anje.pt/faz-te-socio/
-- Desconto 50%: se a adesão for no último trimestre do ano, pode usufruir de 50% de desconto na quota do ano seguinte
-- Pagamento feito por transferência bancária
-- Condições completas: https://anje.pt/condicoes-gerais-de-adesao-a-anje/
-
-CATEGORIAS DE SÓCIOS:
-- Aderente: empreendedores até 40 anos (potenciais empresários, trabalhadores, universitários)
-- Efetivo: empresários entre 18-40 anos (sócios/acionistas de empresa ou empresários em nome individual)
-- Arcanje: sócios que atingiram 41+ anos
-- Corporativo: pessoas coletivas (associações, fundações, sociedades, cooperativas)
-- Honorário: pessoas singulares/coletivas com contribuição relevante para a ANJE
-
-DIREITOS DOS SÓCIOS EFETIVOS:
-- Aceder a todas as atividades e serviços da ANJE
-- Participar na vida e gestão administrativa
-- Usufruir de vantagens e direitos da Associação
-- Ser elegível para cargos da ANJE (após 6 meses de associação)
-- Votar em eleições
-- Convocar Assembleia Geral
-
-DIREITOS DOS SÓCIOS ADERENTES:
-- Mesmas regalias dos efetivos, exceto direito de eleger/ser eleito
-- Podem participar em Assembleias Gerais sem direito a voto
-
-DIREITOS DOS SÓCIOS ARCANJES, CORPORATIVOS E HONORÁRIOS:
-- Participar na atividade associativa mediante quota anual
-- Não têm direito de eleger/ser eleitos nem participar em Assembleias Gerais
-
-BENEFÍCIOS DE SER ASSOCIADO:
-- Condições especiais na rede de parceiros (combustíveis, hotelaria, turismo, transportes)
-- Acesso preferencial a financiamento, internacionalização e promoção
-- Apoio jurídico e consultoria
-- Rede de contactos e representação institucional
-- Descontos de 10% em serviços ANJE (formação, incubação, consultoria)
-- Acesso a incentivos financeiros e investidores
-
-ESTATUTOS:
-- Consultáveis em https://anje.pt/anje/estatutos/
-- Definem a estrutura, órgãos sociais, direitos e deveres dos associados
-
-CONTACTOS:
-- Sede: Casa do Farol, Rua Paula da Gama, 4169-006 Porto
-- Email: anje@anje.pt | Tel: (+351) 220 108 000 | Fax: (+351) 220 108 010
-- Centro Matosinhos: cematosinhos@anje.pt | Tel: +351 229 069 590
-
-REGRAS:
-- Português de Portugal
-- Usa **negrita** para títulos e nomes importantes
-- Inclui sempre URLs completos quando fala de páginas do site
-- IMPORTANTE: Escreve os URLs como texto simples (ex: https://anje.pt/espacos-anje/), NUNCA como markdown links [texto](url)
-- Se perguntarem sobre ESTATUTOS: indica https://anje.pt/anje/estatutos/
-- Se perguntarem sobre ÓRGÃOS SOCIAIS: lista os nomes e cargos acima
-- Se perguntarem COMO SER ASSOCIADO: indica https://anje.pt/faz-te-socio/ e os passos
-- Se perguntarem sobre PROGRAMAS: descreve cada um com o respetivo URL
-- Se perguntarem sobre QUOTAS ou VALOR DE ASSOCIAÇÃO: indica os valores exatos:
-  * Individual: 60€, Micro Empresa: 100€, Pequena: 200€, Média: 400€, Grande: 2500€
-  * Condições completas: https://anje.pt/condicoes-gerais-de-adesao-a-anje/
-- Se perguntarem sobre PORTUGAL FASHION: indica que é um projeto da ANJE criado em 1995, promove a moda de autor nacional e internacionalmente, organiza fashion weeks e eventos internacionais (Paris, Milão, Londres, Nova Iorque, Madrid, etc.), mais de 200 eventos internacionais. Site: https://portugalfashion.com/
-- Se não souberes algo, sugere contactar anje@anje.pt ou visitar anje.pt
-
-REGRAS DE URLs OBRIGATÓRIAS:
-- FORMAÇÃO: Se perguntarem sobre formação, cursos, workshops, capacitação ou certificação, direciona SEMPRE para https://anjeformacao.pt — NUNCA para anje.pt/eventos/
-- RESERVAS DE ESPAÇOS: Se perguntarem sobre reservar espaços, salas, auditório ou salas de reuniões, direciona para https://anje.pt/espacos-anje/ e sugere enviar email para reservasespacos@anje.pt
-- LOJA DO EMPREENDEDOR: Se perguntarem sobre a loja do empreendedor, direciona para https://anje.pt/move/apoios/loja-do-empreendedor/ e sugere preencher o formulário do balcão virtual em https://docs.google.com/forms/d/e/1FAIpQLSe6dxIMqUMgUVuWtPtYyiG8rlGzkGF9a8iaPNG6ZPvf4TZBUQ/viewform
-PROMPT;
+    private function get_system_prompt() {
+        return "Assistente virtual da ANJE (anje.pt) - Ass. Nacional de Jovens Empresarios.\nFundada 1986, utilidade publica. Sede: Casa do Farol, Rua Paula da Gama, 4169-006 Porto.\nEmail: anje@anje.pt | Tel: (+351) 220 108 000 | Fax: (+351) 220 108 010\n\nORG - Direcao: Pres. Carlos Carvalho, VPs Nuno Malheiro, Filipa Pinto de Carvalho, Goncalo Simoes de Almeida. Dir. Nac: Filipe Quinaz, Miguel Teixeira Bastos, Sofia Correia de Sousa, Tiago Araujo. Dir. N. Norte: Antonio Fragateiro. Dir. N. Centro: Beatriz Almeida. Dir. N. Alentejo: Tiago Abalroado. Dir. N. Algarve: Pedro Marcelino. Dir. N. Lisboa: Camilo Ferreira. Suplentes: Joao Pestana de Vasconcelos, Diogo Teixeira.\nMesa AG: Pres. Miguel Moreira da Silva, VP Ricardo Santos Lopes, Sec. Paula Melo, Suplentes Goncalo Sa, Diogo Pinheiro.\nConselho Fiscal: Pres. Catarina Azevedo, VP Pedro Cardoso, Vogais Sofia Xavier, Vitor Almeida, Goncalo Abreu. Suplentes Jose Miguel Oliveira, Manuela Borges.\nCentro Matosinhos: cematosinhos@anje.pt | Tel: +351 229 069 590\n\nPROGRAMAS:\n- Incubacao: 11 centros, modalidades PLAY(25E/mes), THINK(50E), START(100E), GROW(250E). Inclui: sede social, gestao de correio, atendimento telefonico, salas de reunioes. Centros: Matosinhos, Faro, Evora, Porto, Lisboa + 6 localidades. URL: https://anje.pt/linc/ e https://anje.pt/linc/incubacao-virtual/\n- Formacao: certificada, areas gestao/marketing/vendas/financas/juridico/digital. URL: https://anjeformacao.pt\n- Premio Jovem Empreendedor: distincao de projetos empresariais inovadores. Regulamento: https://anje.pt/premio-do-jovem-empreendedor/regulamento/ . Condicoes: https://anje.pt/premio-do-jovem-empreendedor/condicoes/\n- MOVE: programa de apoio ao empreendedorismo. URL: https://anje.pt/move/\n- Portugal Fashion: criado 1995 pela ANJE, promove a moda de autor nacional e internacionalmente, posiciona Portugal como fashion hub europeu e mundial, organiza fashion weeks e eventos internacionais (Paris, Milao, Londres, Nova Iorque, Madrid, etc.), mais de 200 eventos internacionais realizados. URL: https://portugalfashion.com/\n\nASSOCIAR (https://anje.pt/faz-te-socio/): 1. Aceder pagina Faz-te Socio, 2. Preencher Proposta de Adesao, 3. Consultar Condicoes em https://anje.pt/associados/, 4. Aguardar aprovacao da Direcao.\nQUOTAS: Individual 60E, Micro Empresa 100E, Pequena 200E, Media 400E, Grande 2500E. Aderente (ate 40 anos): quota em https://anje.pt/faz-te-socio/. Desconto 50% se adesao no ultimo trimestre. Pagamento por transferencia bancaria. Condicoes completas: https://anje.pt/condicoes-gerais-de-adesao-a-anje/\n\nCATEGORIAS: Aderente (ate 40a, potenciais empresarios/trabalhadores/universitarios), Efetivo (18-40a, socios/acionistas ou empresarios nome individual), Arcanje (41+a), Corporativo (coletivas: associacoes/fundacoes/sociedades/cooperativas), Honorario (singular/coletiva com contribuicao relevante para a ANJE).\n\nDIREITOS SOCIOS EFETIVOS: Aceder a todas as atividades e servicos da ANJE, participar na vida e gestao administrativa, usufruir de vantagens e direitos da Associacao, ser elegivel para cargos da ANJE (apos 6 meses), votar em eleicoes, convocar Assembleia Geral.\nDIREITOS ADERENTES: Mesmas regalias dos efetivos exceto direito de eleger/ser eleito. Podem participar em Assembleias Gerais sem voto.\nDIREITOS ARCANJES/CORPORATIVOS/HONORARIOS: Participar na atividade associativa mediante quota anual. Nao tem direito de eleger/ser eleitos nem participar em Assembleias Gerais.\n\nBENEFICIOS: Condicoes especiais na rede de parceiros (combustiveis, hotelaria, turismo, transportes). Acesso preferencial a financiamento, internacionalizacao e promocao. Apoio juridico e consultoria. Rede de contactos e representacao institucional. Descontos 10% em servicos ANJE (formacao, incubacao, consultoria). Acesso a incentivos financeiros e investidores.\n\nESTATUTOS: https://anje.pt/anje/estatutos/\n\nREGRAS: Portugues PT. **negrita** para titulos. URLs como texto simples (NUNCA markdown [t](url)).\nEstatutos->https://anje.pt/anje/estatutos/. Formacao->https://anjeformacao.pt. Espacos->https://anje.pt/espacos-anje/+reservasespacos@anje.pt. Loja Empreendedor->https://anje.pt/move/apoios/loja-do-empreendedor/+formulario em https://docs.google.com/forms/d/e/1FAIpQLSe6dxIMqUMgUVuWtPtYyiG8rlGzkGF9a8iaPNG6ZPvf4TZBUQ/viewform. Nao souber->anje@anje.pt";
     }
 
     /* ================================================================
@@ -409,7 +369,7 @@ PROMPT;
         $out['primary_color'] = sanitize_hex_color($in['primary_color'] ?? '#007bff');
         $out['position'] = in_array($in['position'] ?? '', ['left','right']) ? $in['position'] : 'right';
         $out['max_tokens'] = absint($in['max_tokens'] ?? 600);
-        $out['request_timeout'] = absint($in['request_timeout'] ?? 60);
+        $out['request_timeout'] = absint($in['request_timeout'] ?? 90);
         $out['show_on_all_pages'] = ($in['show_on_all_pages'] ?? '') === 'yes' ? 'yes' : 'no';
         $out['temperature'] = floatval($in['temperature'] ?? 0.3);
         return $out;
