@@ -30,6 +30,8 @@ class ChatBot_ANJE {
         $defaults = [
             'chatbot_name' => 'ChatBot ANJE',
             'openrouter_key' => '',
+            'gemini_key' => '',
+            'api_provider' => 'openrouter',
             'backend_url' => '',
             'model' => 'openrouter/owl-alpha',
             'welcome_message' => '',
@@ -210,8 +212,16 @@ class ChatBot_ANJE {
             wp_send_json_success(['response' => 'Configure a API Key em Definicoes > ChatBot ANJE']);
         }
 
+        $provider = $s['api_provider'] ?: 'openrouter';
+
         if (!empty($backend_url)) {
             $resp = $this->proxy_to_backend($backend_url, $msg, $s);
+            wp_send_json_success(['response' => $resp]);
+            return;
+        }
+
+        if ($provider === 'gemini' && !empty($s['gemini_key'])) {
+            $resp = $this->call_gemini($msg, $s);
             wp_send_json_success(['response' => $resp]);
             return;
         }
@@ -254,12 +264,57 @@ class ChatBot_ANJE {
         return $d['choices'][0]['message']['content'] ?? 'Erro.';
     }
 
+    private function call_gemini($msg, $s) {
+        $key = $s['gemini_key'];
+        $model = $s['model'] ?: 'gemini-2.0-flash';
+        if (strpos($model, 'openrouter/') === 0) {
+            $model = 'gemini-2.0-flash';
+        }
+        $max_tokens = intval($s['max_tokens']) ?: 600;
+
+        $system_prompt = $this->get_gemini_prompt();
+
+        $payload = [
+            'contents' => [
+                ['role' => 'user', 'parts' => [['text' => $system_prompt . "\n\n" . $msg]]],
+            ],
+            'generationConfig' => [
+                'temperature' => 0.3,
+                'maxOutputTokens' => $max_tokens,
+            ],
+        ];
+
+        $json_body = json_encode($payload, JSON_UNESCAPED_UNICODE);
+        if ($json_body === false) {
+            return 'Erro ao processar.';
+        }
+
+        $r = wp_remote_post(
+            "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$key}",
+            [
+                'timeout' => intval($s['request_timeout']),
+                'headers' => ['Content-Type' => 'application/json'],
+                'body' => $json_body,
+            ]
+        );
+
+        if (is_wp_error($r)) return 'Erro: ' . $r->get_error_message();
+
+        $d = json_decode(wp_remote_retrieve_body($r), true);
+        if (isset($d['error'])) return 'Erro: ' . ($d['error']['message'] ?? 'Desconhecido');
+        return $d['candidates'][0]['content']['parts'][0]['text'] ?? 'Erro.';
+    }
+
     /* ================================================================
      * SYSTEM PROMPT - Base de conhecimento completa da ANJE
      * ================================================================ */
 
     private function get_system_prompt() {
-        return "Assistente virtual da ANJE (anje.pt) - Ass. Nacional de Jovens Empresarios.\nFundada 1986, utilidade publica. Sede: Casa do Farol, Rua Paula da Gama, 4169-006 Porto.\nEmail: anje@anje.pt | Tel: (+351) 220 108 000 | Fax: (+351) 220 108 010\nCentro Matosinhos: cematosinhos@anje.pt | Tel: +351 229 069 590\n\n=== FORMATACAO OBRIGATORIA ===\nQuando listas pessoas, USA SEMPRE este formato (uma pessoa por linha, nome em negrita seguido de dois pontos e o cargo):\n**Nome Completo:** Cargo ou funcao\n\nSepara cada ORGAO/assunto com uma LINHA EM BRANCO entre eles.\nNUNCA juntes pessoas ou orgaos numa frase corrida.\n\nExemplo de resposta CORRETA para \"Quais os orgaos sociais?\":\n\n**Direcao Nacional**\n**Presidente:** Carlos Carvalho\n**Vice-Presidentes:** Nuno Malheiro, Filipa Pinto de Carvalho, Goncalo Simoes de Almeida\n**Diretores Nacionais:** Filipe Quinaz, Miguel Teixeira Bastos, Sofia Correia de Sousa, Tiago Araujo\n**Diretor Nacional Norte:** Antonio Fragateiro\n**Diretora Nacional Centro:** Beatriz Almeida\n**Diretor Nacional Alentejo:** Tiago Abalroado\n**Diretor Nacional Algarve:** Pedro Marcelino\n**Diretor Nacional Lisboa e Vale do Tejo:** Camilo Ferreira\n**Diretores Suplentes:** Joao Pestana de Vasconcelos, Diogo Teixeira\n\n**Mesa da Assembleia-Geral**\n**Presidente:** Miguel Moreira da Silva\n**Vice-Presidente:** Ricardo Santos Lopes\n**Secretaria:** Paula Melo\n**Suplentes:** Goncalo Sa, Diogo Pinheiro\n\n**Conselho Fiscal**\n**Presidente:** Catarina Azevedo\n**Vice-Presidente:** Pedro Cardoso\n**Vogais:** Sofia Xavier, Vitor Almeida, Goncalo Abreu\n**Suplentes:** Jose Miguel Oliveira, Manuela Borges\n\n=== DADOS ===\n\nPROGRAMAS:\n- Incubacao: 11 centros. Modalidades: PLAY(25E/mes+IVA), THINK(50E), START(100E), GROW(250E). Inclui: sede social, correio, tel, salas de reunioes. Centros: Matosinhos, Faro, Evora, Porto, Lisboa e mais 6. Info: https://anje.pt/linc/ e https://anje.pt/linc/incubacao-virtual/\n- Formacao: certificada. Areas: gestao, marketing, vendas, financas, juridico, digital. Site: https://anjeformacao.pt\n- Premio Jovem Empreendedor: distincao de projetos inovadores. Regulamento: https://anje.pt/premio-do-jovem-empreendedor/regulamento/ Condicoes: https://anje.pt/premio-do-jovem-empreendedor/condicoes/\n- MOVE: programa de apoio ao empreendedorismo. URL: https://anje.pt/move/\n- Portugal Fashion: criado 1995 pela ANJE, promove moda de autor nacional e internacionalmente, fashion weeks em Paris, Milao, Londres, Nova Iorque, Madrid, etc. Mais de 200 eventos. URL: https://portugalfashion.com/\n\nASSOCIAR (https://anje.pt/faz-te-socio/): 1. Preencher Proposta de Adesao em https://anje.pt/faz-te-socio/ 2. Consultar condicoes em https://anje.pt/associados/ 3. Aguardar aprovacao da Direcao.\nQUOTAS: Individual 60E, Micro Empresa 100E, Pequena 200E, Media 400E, Grande 2500E. Aderente (ate 40a): quota em https://anje.pt/faz-te-socio/ Desconto 50% no ultimo trimestre. Transferencia bancaria. Condicoes: https://anje.pt/condicoes-gerais-de-adesao-a-anje/\n\nCATEGORIAS: Aderente (ate 40a, potenciais empresarios/trabalhadores/universitarios), Efetivo (18-40a, socios/acionistas ou ENI), Arcanje (41+a), Corporativo (coletivas), Honorario (contribuicao relevante). Direitos: https://anje.pt/associados/\n\nDIREITOS EFETIVOS: Aceder atividades/servicos ANJE, participar na vida/gestao administrativa, usufruir vantagens/direitos, elegivel para cargos (apos 6 meses), votar, convocar AG.\nDIREITOS ADERENTES: Mesmas regalias exceto eleger/ser eleito. Participam AG sem voto.\nDIREITOS ARCANJES/CORPORATIVOS/HONORARIOS: Participar mediante quota anual. Sem direito a eleger/ser eleitos nem AG.\n\nBENEFICIOS: Condicoes especiais parceiros (combustiveis, hotelaria, turismo, transportes). Acesso preferencial a financiamento, internacionalizacao, promocao. Apoio juridico e consultoria. Rede de contactos e representacao institucional. Descontos 10% servicos ANJE (formacao, incubacao, consultoria). Acesso a incentivos e investidores.\n\nESTATUTOS: https://anje.pt/anje/estatutos/\n\nREGRAS: Portugues PT. **negrita** para nomes/cargos. URLs como texto simples (NUNCA [texto](url)).\nFormacao->https://anjeformacao.pt Espacos->https://anje.pt/espacos-anje/ reservasespacos@anje.pt Loja Empreendedor->https://anje.pt/move/apoios/loja-do-empreendedor/ Nao souber->anje@anje.pt";
+        return "Assistente virtual da ANJE (anje.pt) - Ass. Nacional de Jovens Empresarios.\nFundada 1986, utilidade publica. Sede: Casa do Farol, Rua Paula da Gama, 4169-006 Porto.\nEmail: anje@anje.pt | Tel: (+351) 220 108 000 | Fax: (+351) 220 108 010\nCentro Matosinhos: cematosinhos@anje.pt | Tel: +351 229 069 590\n\n=== FORMATACAO OBRIGATORIA ===\nQuando listas pessoas, USA SEMPRE este formato (uma pessoa por linha, nome em negrita seguido de dois pontos e o cargo):\n**Nome Completo:** Cargo ou funcao\n\nSepara cada ORGAO/assunto com uma LINHA EM BRANCO entre eles.\nNUNCA juntes pessoas ou orgaos numa frase corrida.\n\nExemplo de resposta CORRETA para \"Quais os orgaos sociais?\":\n\n**Direcao Nacional**\n**Presidente:** Carlos Carvalho\n**Vice-Presidentes:** Nuno Malheiro, Filipa Pinto de Carvalho, Goncalo Simoes de Almeida\n**Diretores Nacionais:** Filipe Quinaz, Miguel Teixeira Bastos, Sofia Correia de Sousa, Tiago Araujo\n**Diretor Nacional Norte:** Antonio Fragateiro\n**Diretora Nacional Centro:** Beatriz Almeida\n**Diretor Nacional Alentejo:** Tiago Abalroado\n**Diretor Nacional Algarve:** Pedro Marcelino\n**Diretor Nacional Lisboa e Vale do Tejo:** Camilo Ferreira\n**Diretores Suplentes:** Joao Pestana de Vasconcelos, Diogo Teixeira\n\n**Mesa da Assembleia-Geral**\n**Presidente:** Miguel Moreira da Silva\n**Vice-Presidente:** Ricardo Santos Lopes\n**Secretaria:** Paula Melo\n**Suplentes:** Goncalo Sa, Diogo Pinheiro\n\n**Conselho Fiscal**\n**Presidente:** Catarina Azevedo\n**Vice-Presidente:** Pedro Cardoso\n**Vogais:** Sofia Xavier, Vitor Almeida, Goncalo Abreu\n**Suplentes:** Jose Miguel Oliveira, Manuela Borges\n\n=== DADOS ===\n\nPROGRAMAS:\n- Incubacao: 11 centros. Modalidades: PLAY(25E/mes+IVA), THINK(50E), START(100E), GROW(250E). Inclui: sede social, correio, tel, salas de reunioes. Centros: Matosinhos, Faro, Evora, Porto, Lisboa e mais 6. Info: https://anje.pt/linc/ e https://anje.pt/linc/incubacao-virtual/\n- Formacao: certificada. Areas: gestao, marketing, vendas, financas, juridico, IA, comunicacao, lideranca, hotelaria. Regioes: Norte, Centro, Alentejo, Algarve, Lisboa. Info: https://anjeformacao.pt\n- Premio ANJE: premiacao de jovens empreendedores. Categorias: Inovacao, Impacto Social, Internacionalizacao. Info: https://anje.pt/premio-anje/\n- Academia de Lideranca: programa de desenvolvimento de competencias de lideranca para jovens empreendedores. Info: https://anje.pt/academia-de-lideranca/\n\nCOMO SE TORNAR ASSOCIADO:\n- Jovens empresarios ou empreendedores ate 40 anos.\n- Preencher formulario em https://anje.pt/torne-se-associado/\n- Quotas: variam consoante o tipo de associado (individual, coletivo, estudante).\n- Beneficios: acesso a formacao, incubacao, eventos, networking, descontos.\n\nESTATUTOS:\n- A ANJE e uma associacao de utilidade publica, sem fins lucrativos.\n- Estatutos disponiveis em: https://anje.pt/anje/estatutos/\n\nCONTACTOS:\n- Sede: Casa do Farol, Rua Paula da Gama, 4169-006 Porto\n- Email: anje@anje.pt\n- Tel: (+351) 220 108 000\n- Centro Matosinhos: cematosinhos@anje.pt | Tel: +351 229 069 590\n\nREGRAS:\n- Portugues de Portugal\n- Usa **negrita** para nomes de pessoas e titulos de seccoes\n- Separa seccoes com linha em branco\n- Nao inventes informacao. Se nao souberes, diz \"Nao tenho essa informacao. Contacte anje@anje.pt\"";
+    }
+
+    private function get_gemini_prompt() {
+        return "Tu es o assistente virtual da ANJE (anje.pt).\nResponde APENAS em portugues de Portugal.\nUsa **negrita** para nomes e titulos. Separa seccoes com linha em branco.\nNao inventes informacao. Se nao souberes, diz \"Nao tenho essa informacao. Contacte anje@anje.pt\"\n\n---\nANJE - Ass. Nacional de Jovens Empresarios. Fundada 1986, utilidade publica.\nSede: Casa do Farol, Rua Paula da Gama, 4169-006 Porto\nEmail: anje@anje.pt | Tel: (+351) 220 108 000\nCentro Matosinhos: cematosinhos@anje.pt | Tel: +351 229 069 590\n\nORGAOS SOCIAIS:\n**Direcao Nacional:**\n**Presidente:** Carlos Carvalho\n**Vice-Presidentes:** Nuno Malheiro, Filipa Pinto de Carvalho, Goncalo Simoes de Almeida\n**Diretores Nacionais:** Filipe Quinaz, Miguel Teixeira Bastos, Sofia Correia de Sousa, Tiago Araujo\n**Diretor Nacional Norte:** Antonio Fragateiro\n**Diretora Nacional Centro:** Beatriz Almeida\n**Diretor Nacional Alentejo:** Tiago Abalroado\n**Diretor Nacional Algarve:** Pedro Marcelino\n**Diretor Nacional Lisboa e Vale do Tejo:** Camilo Ferreira\n**Diretores Suplentes:** Joao Pestana de Vasconcelos, Diogo Teixeira\n\n**Mesa da Assembleia-Geral:**\n**Presidente:** Miguel Moreira da Silva\n**Vice-Presidente:** Ricardo Santos Lopes\n**Secretaria:** Paula Melo\n**Suplentes:** Goncalo Sa, Diogo Pinheiro\n\n**Conselho Fiscal:**\n**Presidente:** Catarina Azevedo\n**Vice-Presidente:** Pedro Cardoso\n**Vogais:** Sofia Xavier, Vitor Almeida, Goncalo Abreu\n**Suplentes:** Jose Miguel Oliveira, Manuela Borges\n\nPROGRAMAS:\n- Incubacao: 11 centros. Modalidades: PLAY(25E/mes+IVA), THINK(50E), START(100E), GROW(250E). Centros: Matosinhos, Faro, Evora, Porto, Lisboa e mais 6. Info: https://anje.pt/linc/\n- Formacao: certificada DGERT. Areas: gestao, marketing, vendas, financas, juridico, IA, comunicacao, lideranca, hotelaria. Info: https://anjeformacao.pt\n- Premio ANJE: categorias Inovacao, Impacto Social, Internacionalizacao. Info: https://anje.pt/premio-anje/\n- Academia de Lideranca: desenvolvimento de competencias de lideranca. Info: https://anje.pt/academia-de-lideranca/\n\nCOMO SE TORNAR ASSOCIADO:\n- Jovens empresarios ou empreendedores ate 40 anos.\n- Formulario: https://anje.pt/torne-se-associado/\n- Beneficios: formacao, incubacao, eventos, networking, descontos.\n\nESTATUTOS: https://anje.pt/anje/estatutos/\n\nDuvida: anje@anje.pt";
     }
 
     /* ================================================================
@@ -278,6 +333,8 @@ class ChatBot_ANJE {
         $out = [];
         $out['chatbot_name'] = sanitize_text_field($in['chatbot_name'] ?? 'ChatBot ANJE');
         $out['openrouter_key'] = sanitize_text_field($in['openrouter_key'] ?? '');
+        $out['gemini_key'] = sanitize_text_field($in['gemini_key'] ?? '');
+        $out['api_provider'] = in_array($in['api_provider'] ?? '', ['openrouter', 'gemini']) ? $in['api_provider'] : 'openrouter';
         $out['backend_url'] = esc_url_raw($in['backend_url'] ?? '');
         $out['model'] = sanitize_text_field($in['model'] ?? 'openrouter/owl-alpha');
         $out['welcome_message'] = sanitize_textarea_field($in['welcome_message'] ?? '');
@@ -307,10 +364,24 @@ class ChatBot_ANJE {
                         <td><textarea name="chatbot_anje_settings[welcome_message]" rows="5" class="large-text"><?php echo esc_textarea($s['welcome_message']); ?></textarea></td>
                     </tr>
                     <tr>
+                        <th><label>API Provider</label></th>
+                        <td><select name="chatbot_anje_settings[api_provider]">
+                            <option value="openrouter" <?php selected($s['api_provider'],'openrouter'); ?>>OpenRouter</option>
+                            <option value="gemini" <?php selected($s['api_provider'],'gemini'); ?>>Google Gemini</option>
+                        </select></td>
+                    </tr>
+                    <tr>
                         <th><label>OpenRouter API Key</label></th>
                         <td>
                             <input type="password" name="chatbot_anje_settings[openrouter_key]" value="<?php echo esc_attr($s['openrouter_key']); ?>" class="regular-text" placeholder="sk-or-...">
-                            <p class="description">Obter em <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai</a></p>
+                            <p class="description">Usado quando o provider é OpenRouter. <a href="https://openrouter.ai/keys" target="_blank">Obter key</a></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label>Google Gemini API Key</label></th>
+                        <td>
+                            <input type="password" name="chatbot_anje_settings[gemini_key]" value="<?php echo esc_attr($s['gemini_key']); ?>" class="regular-text" placeholder="AIza...">
+                            <p class="description">Usado quando o provider é Gemini. <a href="https://aistudio.google.com/app/apikey" target="_blank">Obter key</a></p>
                         </td>
                     </tr>
                     <tr>

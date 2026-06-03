@@ -25,6 +25,8 @@ register_activation_hook(__FILE__, function() {
     $defaults = [
         'chatbot_name' => 'ChatBot ANJE',
         'openrouter_key' => '',
+        'gemini_key' => '',
+        'api_provider' => 'openrouter',
         'backend_url' => '',
         'model' => 'openrouter/owl-alpha',
         'welcome_message' => "Olá! 👋 Sou o assistente virtual da ANJE.\n\nPosso ajudar com:\n\n• 🏛️ Sobre a ANJE\n• 👥 Órgãos sociais\n• 📋 Programas (Incubação, Formação, Prémio)\n• 🤝 Como se tornar associado\n• 📞 Contactos\n• 📄 Estatutos\n\nO que procura?",
