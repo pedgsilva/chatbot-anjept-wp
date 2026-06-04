@@ -177,9 +177,10 @@ class ChatBot_ANJE {
 
             function renderMd(text){
                 return text
+                    .replace(/&lt;a\s+href="([^"]+)"[^&]*&gt;([^&]+)&lt;\/a&gt;/g,'<a href="$1" target="_blank" rel="noopener" style="color:#0066ee!important;text-decoration:underline!important;font-weight:600!important">$2</a>')
                     .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener" style="color:#0066ee!important;text-decoration:underline!important;font-weight:600!important">$1</a>')
                     .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
-                    .replace(/(https?:\/\/[^<>\s"'()]+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:#0066ee!important;text-decoration:underline!important;font-weight:600!important">$1</a>')
+                    .replace(/(https?:\/\/[^<>\s"']+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:#0066ee!important;text-decoration:underline!important;font-weight:600!important">$1</a>')
                     .replace(/\n/g,'<br>');
             }
 
