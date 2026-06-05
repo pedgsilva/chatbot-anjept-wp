@@ -168,12 +168,10 @@ class ChatBot_ANJE {
             function addMsg(text,type){
                 var d=document.createElement('div');
                 d.className='caj-msg caj-'+type;
-                d.innerHTML=renderMd(escapeHtml(text));
+                d.innerHTML=renderMd(text);
                 msgs.appendChild(d);
                 d.scrollIntoView({behavior:'smooth'});
             }
-
-            function escapeHtml(t){var d=document.createElement('div');d.textContent=t;return d.innerHTML;}
 
             function renderMd(text){
                 return text
