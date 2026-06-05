@@ -168,16 +168,35 @@ class ChatBot_ANJE {
             function addMsg(text,type){
                 var d=document.createElement('div');
                 d.className='caj-msg caj-'+type;
-                d.innerHTML=renderMd(text);
+                d.innerHTML=renderMd(toMarkdown(text));
                 msgs.appendChild(d);
                 d.scrollIntoView({behavior:'smooth'});
+            }
+
+            function toMarkdown(t){
+                t = t.replace(/<script[^>]*>.*?<\/script>/gi, '');
+                t = t.replace(/<iframe[^>]*>.*?<\/iframe>/gi, '');
+                t = t.replace(/<a\s+href="([^"]+)"[^>]*>([^<]+)<\/a>/g, '[$2]($1)');
+                t = t.replace(/<\/?(strong|b)>/g, '**');
+                t = t.replace(/<\/?(em|i)>/g, '*');
+                t = t.replace(/<[^>]+>/g, '');
+                var links = [];
+                t = t.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, function(m, txt, url) {
+                    links.push(txt + '|||' + url);
+                    return '___LK' + (links.length-1) + '___';
+                });
+                t = t.replace(/(https?:\/\/[^<>\s"']+)/g, '[$1]($1)');
+                for (var i = 0; i < links.length; i++) {
+                    var p = links[i].split('|||');
+                    t = t.replace('___LK' + i + '___', '[' + p[0] + '](' + p[1] + ')');
+                }
+                return t;
             }
 
             function renderMd(text){
                 return text
                     .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener" style="color:#0066ee!important;text-decoration:underline!important;font-weight:600!important">$1</a>')
                     .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
-                    .replace(/(https?:\/\/[^<>\s"']+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:#0066ee!important;text-decoration:underline!important;font-weight:600!important">$1</a>')
                     .replace(/\n/g,'<br>');
             }
 
