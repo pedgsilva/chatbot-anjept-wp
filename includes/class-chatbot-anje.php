@@ -410,7 +410,18 @@ class ChatBot_ANJE {
                     </tr>
                     <tr>
                         <th><label>Modelo LLM</label></th>
-                        <td><input type="text" name="chatbot_anje_settings[model]" value="<?php echo esc_attr($s['model']); ?>" class="regular-text"></td>
+                        <td>
+                            <input type="text" name="chatbot_anje_settings[model]" value="<?php echo esc_attr($s['model']); ?>" class="regular-text" list="chatbot-anje-models">
+                            <datalist id="chatbot-anje-models">
+                                <option value="openrouter/owl-alpha">
+                                <option value="nvidia/nemotron-3-ultra-550b-a55b:free">
+                                <option value="nvidia/nemotron-3-super-120b-a12b:free">
+                                <option value="anthropic/claude-3.5-sonnet">
+                                <option value="google/gemini-2.0-flash-001">
+                                <option value="openai/gpt-4o">
+                            </datalist>
+                            <p class="description">Modelos sugeridos: <code>openrouter/owl-alpha</code> (default), <code>nvidia/nemotron-3-ultra-550b-a55b:free</code>, <code>nvidia/nemotron-3-super-120b-a12b:free</code>, <code>anthropic/claude-3.5-sonnet</code>, <code>google/gemini-2.0-flash-001</code>, <code>openai/gpt-4o</code>. Qualquer ID válido do <a href="https://openrouter.ai/models" target="_blank">OpenRouter</a> funciona.</p>
+                        </td>
                     </tr>
                     <tr>
                         <th><label>Temperatura</label></th>
